@@ -1,68 +1,54 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveGeneric #-}
 
-module GeoJSONParser ( parseCountry, parseState ) where
+module GeoJSONParser ( parseFeatureCollection ) where
 
 import qualified Data.ByteString.Lazy as B
-import Control.Monad
+import GHC.Generics
 import Data.Aeson
-import Data.Text
-import Control.Applicative
+import qualified Data.Text as T
+import Data.Char (toUpper, toLower)
+import qualified Data.Map.Strict as Map
+import qualified Data.HashMap.Strict as HM
+import Data.Bifunctor
 
--- data GeoJSONFeatureCollection =
---     GeoJSONFeatureCollection { fc_type :: !Text
---                              , fc_features :: [GeoJSONFeature]
---                              } deriving Show
+data GeoJSONFeatureCollection =
+    GeoJSONFeatureCollection { fcType :: String
+                             , fcFeatures :: [GeoJSONFeature]
+                             } deriving (Show, Generic)
 
--- instance FromJSON GeoJSONFeatureCollection where
---     parseJSON = withObject "GeoJSONFeatureCollection" $ \obj -> do
---         _type <- obj .: "type"
---         features <- obj .: "features"
---         return (GeoJSONFeatureCollection { fc_type = _type, fc_features = features })
+instance FromJSON GeoJSONFeatureCollection where
+    parseJSON = genericParseJSON defaultOptions { fieldLabelModifier = map toLower . drop 2 }
 
-data Geometry = Polygon [[[Double]]] 
-                | MultiPolygon [[[[Double]]]]
-                deriving (Show)
+data GeoJSONFeature =
+    GeoJSONFeature { ftType :: String
+                   , ftProperties :: Map.Map String Value
+                   , ftGeometry :: GeoJSONGeometry
+                   } deriving (Show, Generic)
 
-instance FromJSON Geometry where
- parseJSON v = (Polygon <$> parseJSON v)
-                 <|> (MultiPolygon <$> parseJSON v)
+instance FromJSON GeoJSONFeature where
+    parseJSON = genericParseJSON defaultOptions { fieldLabelModifier = map toLower . drop 2 }
 
-data CountryGeo =
-    CountryGeo { cid :: Int,
-                 countryName :: !Text,
-                  cGeometry :: Geometry
-                  --other fields
-               } deriving (Show)
+data GeoJSONGeometry =
+    GeoJSONPolygon { plType :: String
+                   , plCoordinates :: [[(Float, Float)]]
+                   }
+  | GeoJSONMultiPolygon { mpType :: String
+                        , mpCoordinates :: [[[(Float, Float)]]]
+                        } deriving Show
 
-data StateGeo = 
-    StateGeo { sid :: Int,
-               stateName :: !Text,
-               sGeometry :: Geometry
-               -- other fields
-            } deriving (Show)
-    
-instance FromJSON CountryGeo where
-    parseJSON = withObject "CountryGeo" $ \obj -> do
-        ft_id <- obj .: "id"
-        ft_prop <- obj .: "properties"
-        ft_name <- ft_prop .: "SOVEREIGNT"
-        ft_geo <- obj .: "geometry"
-        ft_coo <- ft_geo .: "coordinates"
-        ft_geometry <- parseJSON ft_coo
-        return (CountryGeo { cid = ft_id, countryName = ft_name, cGeometry = ft_geometry})
+instance FromJSON GeoJSONGeometry where
+    parseJSON = withObject "GeoJSONGeometry" $ \obj -> do
+        _type <- obj .: "type"
+        case _type of
+            "Polygon" -> do coordinates <- obj .: "coordinates"
+                            return (GeoJSONPolygon { plType = _type
+                                                   , plCoordinates = coordinates })
+            "MultiPolygon" -> do coordinates <- obj .: "coordinates"
+                                 return (GeoJSONMultiPolygon { mpType = _type
+                                                             , mpCoordinates = coordinates })
+            _ -> error "unknown geometry"
 
-instance FromJSON StateGeo where
-    parseJSON = withObject "StateGeo" $ \obj -> do
-        ft_prop <- obj .: "properties"
-        ft_name <- ft_prop .: "name"
-        ft_id <- ft_prop .: "ne_id"
-        ft_geo <- obj .: "geometry"
-        ft_coo <- ft_geo .: "coordinates"
-        ft_geometry <- parseJSON ft_coo
-        return (StateGeo { sid = ft_id, stateName = ft_name, sGeometry = ft_geometry})
+parseFeatureCollection :: B.ByteString -> Maybe GeoJSONFeatureCollection
+parseFeatureCollection = decode
 
-parseCountry :: B.ByteString -> Maybe [CountryGeo]
-parseCountry = decode
-
-parseState :: B.ByteString -> Maybe [StateGeo]
-parseState = decode
