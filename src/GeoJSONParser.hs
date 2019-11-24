@@ -1,7 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric #-}
 
-module GeoJSONParser ( parseFeatureCollection ) where
+-- GeoJSON specification: https://tools.ietf.org/html/rfc7946
+
+module GeoJSONParser (
+    parseFeatureCollection,
+    GeoJSONFeatureCollection (..),
+    GeoJSONFeature (..)
+) where
 
 import qualified Data.ByteString.Lazy as B
 import GHC.Generics
@@ -10,7 +16,10 @@ import qualified Data.Text as T
 import Data.Char (toUpper, toLower)
 import qualified Data.Map.Strict as Map
 import qualified Data.HashMap.Strict as HM
-import Data.Bifunctor
+import Geometry (Geometry)
+
+parseFeatureCollection :: B.ByteString -> Maybe GeoJSONFeatureCollection
+parseFeatureCollection = decode
 
 data GeoJSONFeatureCollection =
     GeoJSONFeatureCollection { fcType :: String
@@ -18,37 +27,19 @@ data GeoJSONFeatureCollection =
                              } deriving (Show, Generic)
 
 instance FromJSON GeoJSONFeatureCollection where
-    parseJSON = genericParseJSON defaultOptions { fieldLabelModifier = map toLower . drop 2 }
+    parseJSON = genericParseJSON defaultOptions {
+        fieldLabelModifier = defaultFieldLabelModifier }
 
+-- should we instead directly parse Countries and States as features?
 data GeoJSONFeature =
     GeoJSONFeature { ftType :: String
                    , ftProperties :: Map.Map String Value
-                   , ftGeometry :: GeoJSONGeometry
+                   , ftGeometry :: Geometry
                    } deriving (Show, Generic)
 
 instance FromJSON GeoJSONFeature where
-    parseJSON = genericParseJSON defaultOptions { fieldLabelModifier = map toLower . drop 2 }
+    parseJSON = genericParseJSON defaultOptions {
+        fieldLabelModifier = defaultFieldLabelModifier }
 
-data GeoJSONGeometry =
-    GeoJSONPolygon { plType :: String
-                   , plCoordinates :: [[(Float, Float)]]
-                   }
-  | GeoJSONMultiPolygon { mpType :: String
-                        , mpCoordinates :: [[[(Float, Float)]]]
-                        } deriving Show
-
-instance FromJSON GeoJSONGeometry where
-    parseJSON = withObject "GeoJSONGeometry" $ \obj -> do
-        _type <- obj .: "type"
-        case _type of
-            "Polygon" -> do coordinates <- obj .: "coordinates"
-                            return (GeoJSONPolygon { plType = _type
-                                                   , plCoordinates = coordinates })
-            "MultiPolygon" -> do coordinates <- obj .: "coordinates"
-                                 return (GeoJSONMultiPolygon { mpType = _type
-                                                             , mpCoordinates = coordinates })
-            _ -> error "unknown geometry"
-
-parseFeatureCollection :: B.ByteString -> Maybe GeoJSONFeatureCollection
-parseFeatureCollection = decode
-
+defaultFieldLabelModifier :: String -> String
+defaultFieldLabelModifier = map toLower . drop 2
