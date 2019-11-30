@@ -63,7 +63,8 @@ fromLinearRings rings
     where outerRing = head rings
           innerRings = tail rings
           anyCounterClockwise = atLeastOne (not . isClockwise)
-
+          
+-- can we just use 'any' here?
 atLeastOne :: (a -> Bool) -> [a] -> Bool -- Can [a] be generalized to any monad?
 atLeastOne p = (== Any True) . mconcat . fmap (Any . p)
 
