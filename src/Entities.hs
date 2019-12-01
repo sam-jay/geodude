@@ -2,8 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Entities (
-    Country,
-    State,
+    Entity,
     parseStates,
     parseCountries
 ) where
@@ -19,19 +18,25 @@ import qualified Data.Map.Strict as Map
 import Data.Aeson
 import Data.Aeson.Types (Value, Value (String, Null, Object, Number))
 import qualified Data.Text as T
+import BoundingBox (Boundable, getBoundingBox)
 
-data Country = Country { cGeometry :: Geometry
-                       , cName :: String
-                       , cAdmin :: String } deriving Show
+data Entity =
+    Country { cGeometry :: Geometry
+            , cName :: String
+            , cAdmin :: String }
+  | State { sGeometry :: Geometry
+          , sName :: Maybe String
+          , sAdmin :: String } deriving Show
 
-data State = State { sGeometry :: Geometry
-                   , sName :: Maybe String
-                   , sAdmin :: String } deriving Show
+instance Boundable Entity where
+    getBoundingBox Country { cGeometry } = getBoundingBox cGeometry
+    getBoundingBox State { sGeometry } = getBoundingBox sGeometry
 
-parseCountries :: GeoJSONFeatureCollection -> Maybe [Country]
+
+parseCountries :: GeoJSONFeatureCollection -> Maybe [Entity]
 parseCountries = mapM featureToCountry . fcFeatures
 
-featureToCountry :: GeoJSONFeature -> Maybe Country
+featureToCountry :: GeoJSONFeature -> Maybe Entity
 featureToCountry GeoJSONFeature { ftType, ftProperties, ftGeometry } = do
     name <- extractText <$> Map.lookup "NAME" ftProperties
     admin <- extractText <$> Map.lookup "ADMIN" ftProperties
@@ -39,10 +44,10 @@ featureToCountry GeoJSONFeature { ftType, ftProperties, ftGeometry } = do
                      , cName = name
                      , cAdmin = admin }
 
-parseStates :: GeoJSONFeatureCollection -> Maybe [State]
+parseStates :: GeoJSONFeatureCollection -> Maybe [Entity]
 parseStates = mapM featureToState . fcFeatures
 
-featureToState :: GeoJSONFeature -> Maybe State
+featureToState :: GeoJSONFeature -> Maybe Entity
 featureToState GeoJSONFeature { ftType, ftProperties, ftGeometry } = do
     name <- extractMaybeText <$> Map.lookup "name" ftProperties
     admin <- extractText <$> Map.lookup "admin" ftProperties

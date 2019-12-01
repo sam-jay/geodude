@@ -5,6 +5,7 @@ import Data.Aeson
 import Data.Aeson.QQ
 import qualified Data.ByteString.Lazy as B
 import Entities (parseStates, parseCountries)
+import RTree
 
 emptyFeatureCollection :: Value
 emptyFeatureCollection = [aesonQQ|
@@ -41,5 +42,10 @@ loadStates = do
 
 loadCountries = do
     x <- B.readFile "../data/countries.json"
-    return $ parseFeatureCollection x
+    case parseFeatureCollection x of
+        Just fcs -> case parseCountries fcs of
+                        Just countries -> do
+                            let c = head $ countries
+                            let nt =  insert newTree c
+                            return nt
 
