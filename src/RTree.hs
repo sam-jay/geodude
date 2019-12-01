@@ -1,46 +1,44 @@
 module RTree where
 
+import BoundingBox (BoundingBox)
+import qualified BoundingBox as BB
+import Data.List (sortBy)
+
 maxChildren = 3
 
-class Bounded a where
-    getBoundingBox :: a -> Rectangle
+class Boundable a where
+    getBoundingBox :: a -> BoundingBox
 
 data RTree a =
-    Node [RTree a]
-  | Leaf a
+    Node BoundingBox [RTree a]
+  | Leaf BoundingBox a
   | Empty
+  deriving (Show)
 
+instance Boundable (RTree a) where
+    getBoundingBox (Node bb _) = bb
+    getBoundingBox (Leaf bb _) = bb
+    getBoundingBox Empty = error "getBoundingBox on Empty"
 
-newTree :: RTree
+newTree :: RTree a
 newTree = Empty
 
-insert :: Bounded a => RTree a -> a -> RTree a
-insert Empty elem = Leaf elem
-insert a@(Leaf item) elem = Node [a, Leaf elem]
-insert (Node children) elem = addElem bestChild elem
-                              where bestChild = snd $ minimum $ zip (map (computeD elem) children) children
-                                    computeD e1 e2 = a1 - area $ getBoundingBox e2
-                                    a1 = area $ enlargedBox (getBoundingBox e1) (getBoundingBox e2)
-                                    area (x1, y1) (x2, y2) = (x2-x1) * (y2-y1)
-                                    enlargedBox ((x1,y1), (x2,y2)) ((x3,y3), (x4,y4)) = let topLeft = (min x1 x3, min y1 y3)
-                                                                                            bottomRight = (max x2 x4, max y2 y4)
-                                                                                        in (topLeft, bottomRight)
+insert :: Boundable a => RTree a -> a -> RTree a
+insert Empty elem = Leaf (getBoundingBox elem) elem
+insert e@(Leaf bb _) elem = Node (BB.enlarge bb $ getBoundingBox elem) [e, insert Empty elem]
+insert (Node bb children) elem
+    | length children == maxChildren = Node enlargedBox updatedChildren
+    | otherwise = Node enlargedBox appendedChildren
+    where enlargedBox = BB.enlarge bb $ getBoundingBox elem
+          appendedChildren = insert Empty elem:children
+          updatedChildren = let (hd:tl) = (sortBy compare' $ children) in
+                            (insert hd elem):tl
+          compare' :: (Boundable a, Boundable b) => a -> b -> Ordering
+          compare' x y = computeBBDiff x `compare` computeBBDiff y
+          computeBBDiff :: Boundable a => a -> Double
+          computeBBDiff x = enlargedArea x - originalArea x
+          originalArea :: Boundable a => a -> Double
+          originalArea = BB.area . getBoundingBox
+          enlargedArea :: Boundable a => a -> Double
+          enlargedArea = BB.area . (BB.enlarge $ getBoundingBox elem) . getBoundingBox
 
-addElem :: Bounded a => RTree a -> a -> RTree a
-
-
-get :: RTree a -> Point -> [a]
-
-
-data Node =
-    Node { nEntries :: [Entry] }
-
-
-data Entry =
-    Entry { eBoundingBox :: Rectangle
-          , eChild :: Node }
-
-
-type Rectangle = (Point, Point)
-
-type Point = (Float, Float)
