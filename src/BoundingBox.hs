@@ -7,6 +7,9 @@ data BoundingBox = BoundingBox { x1 :: !Double
                                , x2 :: !Double
                                , y2 :: !Double } deriving (Eq)
 
+class Boundable a where
+    getBoundingBox :: a -> BoundingBox
+
 type Point = (Double, Double)
 
 --get the least enlargement boundingbox that contains bb1 and bb2

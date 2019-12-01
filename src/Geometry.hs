@@ -12,6 +12,8 @@ module Geometry (
 
 import Data.Aeson
 import Data.Monoid
+import BoundingBox (BoundingBox(BoundingBox), Boundable, getBoundingBox)
+import qualified BoundingBox as BB
 
 data GeoError =
     ClockwiseOuterRing { badRing :: LinearRing }
@@ -32,6 +34,12 @@ data Geometry =
             , pInnerRings :: [LinearRing] }
   | MultiPolygon { mPolygons :: [Geometry] }
   deriving Show
+
+
+instance Boundable Geometry where
+    getBoundingBox Polygon { pOuterRing } = getBoundingBox pOuterRing
+    getBoundingBox MultiPolygon { mPolygons } = foldl1 BB.enlarge (map getBoundingBox mPolygons)
+
 
 instance FromJSON Geometry where
     parseJSON = withObject "Geometry" $ \obj -> do
@@ -78,6 +86,15 @@ isClockwise = (< 0) . sum . map transformEdge . makeEdges . getLineString
 
 newtype LinearRing = LinearRing { getLineString :: LineString } deriving Show
 
+instance Boundable LinearRing where
+    getBoundingBox LinearRing { getLineString } = BoundingBox minX maxY maxX minY
+        where minX = minimum $ xs
+              maxX = maximum $ xs
+              minY = minimum $ ys
+              maxY = maximum $ ys
+              xs = map fst getLineString
+              ys = map snd getLineString
+
 instance FromJSON LinearRing where
     parseJSON jsn = do
         ls <- parseJSON jsn
@@ -102,5 +119,5 @@ isClosedLineString ls
 
 type LineString = [Position]
 
-type Position = (Float, Float)
+type Position = (Double, Double)
 

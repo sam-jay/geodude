@@ -1,13 +1,10 @@
 module RTree where
 
-import BoundingBox (BoundingBox)
+import BoundingBox (BoundingBox, Boundable, getBoundingBox)
 import qualified BoundingBox as BB
 import Data.List (sortBy)
 
 maxChildren = 3
-
-class Boundable a where
-    getBoundingBox :: a -> BoundingBox
 
 data RTree a =
     Node BoundingBox [RTree a]
