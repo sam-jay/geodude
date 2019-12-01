@@ -1,6 +1,6 @@
 module RTree where
 
-import BoundingBox (BoundingBox, Boundable, getBoundingBox)
+import BoundingBox (BoundingBox, Boundable, getBoundingBox,Point)
 import qualified BoundingBox as BB
 import Data.List (sortBy)
 
@@ -34,7 +34,14 @@ insert (Node bb children) elem
           computeBBDiff x = enlargedArea x - originalArea x
           originalArea = BB.area . getBoundingBox
           enlargedArea = BB.area . (BB.enlarge $ getBoundingBox elem) . getBoundingBox
-  
+
+-- fromList :: [(BoundingBox, a)] -> RTree a
+
+-- splitNode :: RTree a -> [RTree a]
+-- splitNode Empty = error "split empty node"
+-- splitNode Leaf _ _ = error "split leaf node"
+-- splitNode Node bb children = 
+
 contains :: RTree a -> Point -> [RTree a]
 contains Empty _ = []
 contains l@(Leaf bb a) p 

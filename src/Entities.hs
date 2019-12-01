@@ -38,7 +38,7 @@ parseCountries = mapM featureToCountry . fcFeatures
 
 featureToCountry :: GeoJSONFeature -> Maybe Entity
 featureToCountry GeoJSONFeature { ftType, ftProperties, ftGeometry } = do
-    name <- extractText <$> Map.lookup "NAME" ftProperties
+    name <- extractText <$> Map.lookup "SOVEREIGNT" ftProperties
     admin <- extractText <$> Map.lookup "ADMIN" ftProperties
     return $ Country { cGeometry = ftGeometry
                      , cName = name

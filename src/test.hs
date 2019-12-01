@@ -6,6 +6,7 @@ import Data.Aeson.QQ
 import qualified Data.ByteString.Lazy as B
 import Entities (parseStates, parseCountries)
 import RTree
+import BoundingBox (Point)
 
 emptyFeatureCollection :: Value
 emptyFeatureCollection = [aesonQQ|
