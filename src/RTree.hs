@@ -33,12 +33,8 @@ insert (Node bb children) elem
           appendedChildren = insert Empty elem:children
           updatedChildren = let (hd:tl) = (sortBy compare' $ children) in
                             (insert hd elem):tl
-          compare' :: (Boundable a, Boundable b) => a -> b -> Ordering
           compare' x y = computeBBDiff x `compare` computeBBDiff y
-          computeBBDiff :: Boundable a => a -> Double
           computeBBDiff x = enlargedArea x - originalArea x
-          originalArea :: Boundable a => a -> Double
           originalArea = BB.area . getBoundingBox
-          enlargedArea :: Boundable a => a -> Double
           enlargedArea = BB.area . (BB.enlarge $ getBoundingBox elem) . getBoundingBox
 
