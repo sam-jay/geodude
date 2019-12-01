@@ -34,4 +34,12 @@ insert (Node bb children) elem
           computeBBDiff x = enlargedArea x - originalArea x
           originalArea = BB.area . getBoundingBox
           enlargedArea = BB.area . (BB.enlarge $ getBoundingBox elem) . getBoundingBox
-
+  
+contains :: RTree a -> Point -> [RTree a]
+contains Empty _ = []
+contains l@(Leaf bb a) p 
+ | BB.containsPoint bb p = [l]
+ | otherwise = []
+contains (Node bb children) p
+ | BB.containsPoint bb p = foldr (\x acc ->(contains x p) ++ acc) [] children
+ | otherwise = []

@@ -87,7 +87,7 @@ isClockwise = (< 0) . sum . map transformEdge . makeEdges . getLineString
 newtype LinearRing = LinearRing { getLineString :: LineString } deriving Show
 
 instance Boundable LinearRing where
-    getBoundingBox LinearRing { getLineString } = BoundingBox minX maxY maxX minY
+    getBoundingBox LinearRing { getLineString } = BoundingBox minX minY maxX maxY
         where minX = minimum $ xs
               maxX = maximum $ xs
               minY = minimum $ ys
