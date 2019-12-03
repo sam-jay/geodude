@@ -33,7 +33,7 @@ data Geometry =
     Polygon { pOuterRing :: LinearRing
             , pInnerRings :: [LinearRing] }
   | MultiPolygon { mPolygons :: [Geometry] }
-  deriving Show
+  deriving (Show, Eq)
 
 
 instance Boundable Geometry where
@@ -84,7 +84,7 @@ isClockwise = (< 0) . sum . map transformEdge . makeEdges . getLineString
     where transformEdge ((x1, y1), (x2, y2)) = (x2 - x1) * (y2 + y1)
           makeEdges = zip <$> id <*> tail
 
-newtype LinearRing = LinearRing { getLineString :: LineString } deriving Show
+newtype LinearRing = LinearRing { getLineString :: LineString } deriving (Show,Eq)
 
 instance Boundable LinearRing where
     getBoundingBox LinearRing { getLineString } = BoundingBox minX minY maxX maxY

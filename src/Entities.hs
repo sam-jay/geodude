@@ -26,7 +26,7 @@ data Entity =
             , cAdmin :: String }
   | State { sGeometry :: Geometry
           , sName :: Maybe String
-          , sAdmin :: String } deriving Show
+          , sAdmin :: String } deriving (Show, Eq)
 
 instance Boundable Entity where
     getBoundingBox Country { cGeometry } = getBoundingBox cGeometry
