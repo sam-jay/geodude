@@ -27,23 +27,29 @@ singleton :: Boundable a => a -> RTree a
 singleton a = Leaf (getBoundingBox a) a
 
 generateNode :: Boundable a => [RTree a] -> RTree a
-generateNode children = Node (mergeBB $ getBoundingBox <$> children) children
- where mergeBB [] = error "empty bounding box list"
-       mergeBB bbs = foldr1 BB.enlarge bbs 
+generateNode children = Node (mergeBB' $ getBoundingBox <$> children) children
+ where mergeBB' [] = error "empty bounding box list"
+       mergeBB' bbs = foldr1 BB.enlarge bbs
 
 insert :: Boundable a => RTree a -> a -> RTree a
-insert Empty elem = Leaf (getBoundingBox elem) elem
-insert n@(Leaf bb _) elem = Node (BB.enlarge bb $ getBoundingBox elem) [singleton elem,n]
-insert (Node bb children) elem 
+insert Empty e = singleton e
+insert n@(Leaf bb _) e = Node (mergeBB n e) [singleton e, n]
+insert n@(Node bb children) e
  | length newChildren > maxChildren = generateNode $ splitNode newNode
  | otherwise = newNode
- where newNode@(Node newBB newChildren) = Node (BB.enlarge bb $ getBoundingBox elem) $ insertIntoBestChild children elem
+ where newNode@(Node newBB newChildren) = Node (mergeBB n e) $ insertIntoBestChild children e
+
+
+mergeBB :: Boundable a => RTree a -> a -> BoundingBox
+mergeBB Empty e = getBoundingBox e
+mergeBB t e = BB.enlarge (getBoundingBox t) (getBoundingBox e)
+
 
 insertIntoBestChild :: Boundable a => [RTree a] -> a -> [RTree a]
 insertIntoBestChild children elem = (insert hd elem) : tl
  where (hd:tl) = sortBy compare' children
-       compare' x y = computeBBDiff x `compare` computeBBDiff y
-       computeBBDiff x = enlargedArea x - originalArea x
+       compare' x y = diffBB x `compare` diffBB y
+       diffBB x = enlargedArea x - originalArea x
        originalArea = BB.area . getBoundingBox
        enlargedArea = BB.area . (BB.enlarge $ getBoundingBox elem) . getBoundingBox
 
