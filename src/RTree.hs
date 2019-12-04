@@ -19,7 +19,6 @@ instance Boundable (RTree a) where
     getBoundingBox (Leaf bb _) = bb
     getBoundingBox Empty = error "getBoundingBox on Empty"
 
-
 newTree :: RTree a
 newTree = Empty
 
@@ -116,3 +115,15 @@ contains l@(Leaf bb a) p
 contains (Node bb children) p
  | BB.containsPoint bb p = foldr (\x acc ->(contains x p) ++ acc) [] children
  | otherwise = []
+
+--customized print function for RTree
+space ::String
+space = "         "
+
+printTree :: (Boundable a, Show a) => String -> RTree a -> IO ()
+printTree header Empty = putStrLn $ header ++ "Empty"
+printTree header (Leaf bb x) = putStrLn $ header ++ "Leaf " ++ (show bb) ++ " " ++ (show x)
+printTree header (Node bb children) = do putStrLn $ header ++ "Node " ++ (show bb) ++ "{"
+                                         mapM_ (printTree (header ++ space)) children
+                                         putStr "}"
+

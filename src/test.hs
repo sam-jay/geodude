@@ -46,9 +46,10 @@ loadCountries = do
     case parseFeatureCollection x of
         Just fcs -> case parseCountries fcs of
                         Just countries -> do
-                            let c = head $ countries
-                            let nt =  insert newTree c
-                            let point = (-69.95990753173828, 12.490213662533307)
-                            let ok = contains nt point
-                            return ok
+                            -- let c = head $ countries
+                            -- let tree = insert newTree c
+                            let tree =  fromList countries
+                            -- let point = (-69.95990753173828, 12.490213662533307)
+                            -- let ok = contains nt point
+                            printTree "" tree
 

@@ -42,6 +42,6 @@ intersect b1 b2 = not (x1 >= x2' || x2 <= x1' || y2 <= y1' || y2' <= y1)
           BoundingBox x1' y1' x2' y2' = b2
 
 instance Show BoundingBox where
-    show (BoundingBox x1 y1 x2 y2) = "BoundingBox [" ++ points ++ "]"
+    show (BoundingBox x1 y1 x2 y2) = "BB [" ++ points ++ "]"
         where points = concat $ intersperse "," $ map show [x1, y1, x2, y2]
 

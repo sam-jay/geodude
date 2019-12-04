@@ -26,7 +26,11 @@ data Entity =
             , cAdmin :: String }
   | State { sGeometry :: Geometry
           , sName :: Maybe String
-          , sAdmin :: String } deriving (Show, Eq)
+          , sAdmin :: String } deriving (Eq)
+
+instance Show Entity where
+  show (Country {cName}) = "Country{ " ++ show cName ++ "}"
+  show (State {sName}) = "State{ " ++ show sName ++ "}"  
 
 instance Boundable Entity where
     getBoundingBox Country { cGeometry } = getBoundingBox cGeometry
