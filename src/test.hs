@@ -48,5 +48,7 @@ loadCountries = do
                         Just countries -> do
                             let c = head $ countries
                             let nt =  insert newTree c
-                            return nt
+                            let point = (-69.95990753173828, 12.490213662533307)
+                            let ok = contains nt point
+                            return ok
 

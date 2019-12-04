@@ -53,15 +53,6 @@ insertIntoBestChild children elem = (insert hd elem) : tl
        originalArea = BB.area . getBoundingBox
        enlargedArea = BB.area . (BB.enlarge $ getBoundingBox elem) . getBoundingBox
 
-
-
-  -- let (hd:tl) = sortBy compare' children in
-  --                     case insert hd elem of
-  --                                   [subTree] -> [Node (BB.enlarge bb $ getBoundingBox elem) subTree:children]
-  --                                   subTrees -> case length children + length subTrees > maxChildren of
-  --                                       False -> [Node (BB.enlarge bb $ getBoundingBox elem) $ subTrees ++ children]
-  --                                       True -> splitNode $ subTrees ++ children
-
 splitNode :: Boundable a => RTree a -> [RTree a]
 splitNode Empty = error "split empty node"
 splitNode (Leaf _ _) = error "split leaf node"
@@ -107,25 +98,15 @@ partition l r toAdd
         | length l < length r = assignToLeft
         | otherwise = assignToRight
 
+depth :: Boundable a => RTree a -> Int
+depth Empty = 0
+depth (Leaf _ _) = 1
+depth (Node _ children) = 1 + (depth $ head children)
 
--- insert :: Boundable a => RTree a -> a -> RTree a
--- insert Empty elem = Leaf (getBoundingBox elem) elem
--- insert e@(Leaf bb _) elem = Node (BB.enlarge bb $ getBoundingBox elem) [e, insert Empty elem]
--- insert (Node bb children) elem
---     | length children == maxChildren = Node enlargedBox updatedChildren
---     | otherwise = Node enlargedBox appendedChildren
---     where enlargedBox = BB.enlarge bb $ getBoundingBox elem
---           appendedChildren = insert Empty elem:children
---           updatedChildren = let (hd:tl) = (sortBy compare' $ children) in
---                             (insert hd elem):tl
---           compare' x y = computeBBDiff x `compare` computeBBDiff y
---           computeBBDiff x = enlargedArea x - originalArea x
---           originalArea = BB.area . getBoundingBox
---           enlargedArea = BB.area . (BB.enlarge $ getBoundingBox elem) . getBoundingBox
-
--- fromList :: [(BoundingBox, a)] -> RTree a
-
-
+fromList :: Boundable a => [a] -> RTree a
+fromList [] = Empty
+fromList [x] = singleton x
+fromList xs = foldr (\x acc -> insert acc x) Empty xs
 
 contains :: Boundable a => RTree a -> Point -> [RTree a]
 contains Empty _ = []
