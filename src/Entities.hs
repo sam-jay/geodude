@@ -2,9 +2,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Entities (
-    Entity(..),
+    Entity,
     parseStates,
-    parseCountries
+    parseCountries,
+    containsPoint
 ) where
 
 import Geometry
@@ -63,3 +64,8 @@ extractText (String t) = T.unpack t
 extractMaybeText :: Value -> Maybe String
 extractMaybeText (String t) = Just $ T.unpack t
 extractMaybeText Null = Nothing
+
+containsPoint :: Entity -> (Double, Double) -> Bool
+containsPoint (Country {cGeometry}) p = containsP cGeometry p
+containsPoint (State {sGeometry}) p = containsP sGeometry p
+

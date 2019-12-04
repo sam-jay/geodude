@@ -5,7 +5,6 @@ import Data.Aeson
 import Data.Aeson.QQ
 import qualified Data.ByteString.Lazy as B
 import Entities
-import Geometry (containsP)
 import RTree
 import BoundingBox (Point)
 
@@ -43,15 +42,15 @@ loadStates = do
                        Just states -> putStrLn $ show states
 
 loadCountries = do
-    x <- B.readFile "../data/test.json"
+    x <- B.readFile "../data/countries.json"
     case parseFeatureCollection x of
         Just fcs -> case parseCountries fcs of
                         Just countries -> do
-                            let c = cGeometry.head $ countries
+                            let c = head $ countries
                             -- let tree = insert newTree c
                             --let (Node _ children) =  fromList countries
                             let point = (-69.95441436767578, 12.518703864466934)
-                            let ok = containsP c point
+                            let ok = containsPoint c point
                             -- let ok = contains nt point
                             -- printTree "" tree
                             --mapM_ (putStrLn. show. depth) children
