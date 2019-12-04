@@ -25,6 +25,7 @@ newTree = Empty
 singleton :: Boundable a => a -> RTree a
 singleton a = Leaf (getBoundingBox a) a
 
+-- generate a tree node which has this list of nodes as its children
 generateNode :: Boundable a => [RTree a] -> RTree a
 generateNode children = Node (mergeBB' $ getBoundingBox <$> children) children
  where mergeBB' [] = error "empty bounding box list"
@@ -47,11 +48,13 @@ toList Empty = []
 toList (Leaf _ a) = [a]
 toList (Node _ ts) = concat $ map toList ts
 
+-- merge boundingbox of given node and element
 mergeBB :: Boundable a => RTree a -> a -> BoundingBox
 mergeBB Empty e = getBoundingBox e
 mergeBB t e = BB.enlarge (getBoundingBox t) (getBoundingBox e)
 
-
+-- insert element to the best child of a list of tree nodes by finding the least enlargement
+-- return the list of nodes after insertion
 insertIntoBestChild :: Boundable a => [RTree a] -> a -> [RTree a]
 insertIntoBestChild children elem = (insert hd elem) : tl
  where (hd:tl) = sortBy compare' children
@@ -60,6 +63,7 @@ insertIntoBestChild children elem = (insert hd elem) : tl
        originalArea = BB.area . getBoundingBox
        enlargedArea = BB.area . (BB.enlarge $ getBoundingBox elem) . getBoundingBox
 
+-- split a tree node into 2 nodes by regrouping its children into 2 groups
 splitNode :: Boundable a => RTree a -> [RTree a]
 splitNode Empty = error "split empty node"
 splitNode (Leaf _ _) = error "split leaf node"
@@ -68,20 +72,26 @@ splitNode (Node bb children) = [generateNode group1, generateNode group2]
        toAdd = filter (\e -> (getBoundingBox e) /= (getBoundingBox l) && (getBoundingBox e) /= (getBoundingBox r)) children
        (group1, group2) = partition [l] [r] toAdd
 
+-- find the pair of child nodes which has the biggest enlarged boundingbox
 worstPair :: Boundable a => [RTree a] -> (RTree a, RTree a)
 worstPair children = result
  where result = snd $ maximumBy (\m n -> compare (fst m) (fst n)) [(BB.area $ BB.enlarge (getBoundingBox c1) (getBoundingBox c2), (c1, c2)) 
                      | x <- indexedC, y <- indexedC, let (c1,idx1) = x, let (c2, idx2) = y, idx1 /= idx2]
        indexedC = zip children [1..]
 
+-- get the enlarged boundingbox from two tree nodes
 unionBB :: Boundable a => RTree a -> RTree a -> BoundingBox
 unionBB n1 n2 = BB.enlarge (getBoundingBox n1) (getBoundingBox n2)
 
+-- compute the area diff when enlarge a node to another
 areaDiffWithNode :: Boundable a =>  RTree a -> RTree a -> Double
 areaDiffWithNode newNode old = newArea - oldArea
  where newArea = BB.area $ unionBB newNode old
        oldArea = BB.area $ getBoundingBox old
 
+-- partition the third list of nodes into either the first or the second group of nodes
+-- return (group1, group2)
+-- detailed algorithm: http://www-db.deis.unibo.it/courses/SI-LS/papers/Gut84.pdfss
 partition :: Boundable a => [RTree a] -> [RTree a] -> [RTree a] -> ([RTree a], [RTree a])
 partition l r [] = (l,r)
 partition l r toAdd 
@@ -110,6 +120,7 @@ depth Empty = 0
 depth (Leaf _ _) = 1
 depth (Node _ children) = 1 + (depth $ head children)
 
+-- given a tree and a point, return all leaf nodes as a list that contain the point
 contains :: Boundable a => RTree a -> Point -> [RTree a]
 contains Empty _ = []
 contains l@(Leaf bb a) p 
