@@ -27,13 +27,13 @@ area (BoundingBox x1 y1 x2 y2) = (x2 - x1) * (y2 - y1)
 
 --check whether the first boundingbox contains the second boundingbox
 containsRect :: BoundingBox -> BoundingBox -> Bool
-containsRect b1 b2 = x1 <= x1' && y1 <= y1' && x2 >= x2' && y2 >= y2'
+containsRect b1 b2 = x1 < x1' && y1 < y1' && x2 > x2' && y2 > y2'
     where BoundingBox x1 y1 x2 y2 = b1
           BoundingBox x1' y1' x2' y2' = b2
 
 --check whether a boundingbox contains a point
 containsPoint :: BoundingBox -> Point -> Bool
-containsPoint bb (px, py) = px >= x1 && px <= x2 && py >= y1 && py <= y2
+containsPoint bb (px, py) = px > x1 && px < x2 && py > y1 && py < y2
     where BoundingBox x1 y1 x2 y2 = bb
 
 --check whether two boundingbox intersect
@@ -43,6 +43,6 @@ intersect b1 b2 = not (x1 >= x2' || x2 <= x1' || y2 <= y1' || y2' <= y1)
           BoundingBox x1' y1' x2' y2' = b2
 
 instance Show BoundingBox where
-    show (BoundingBox x1 y1 x2 y2) = "BoundingBox [" ++ points ++ "]"
+    show (BoundingBox x1 y1 x2 y2) = "BB [" ++ points ++ "]"
         where points = concat $ intersperse "," $ map show [x1, y1, x2, y2]
 

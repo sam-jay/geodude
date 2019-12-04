@@ -4,7 +4,8 @@ import GeoJSONParser (parseFeatureCollection, GeoJSONFeatureCollection)
 import Data.Aeson
 import Data.Aeson.QQ
 import qualified Data.ByteString.Lazy as B
-import Entities (parseStates, parseCountries, Entity)
+import Entities
+import Geometry (containsP)
 import RTree
 import BoundingBox (Boundable, Point, getBoundingBox)
 import Test.QuickCheck
@@ -52,11 +53,17 @@ loadStates = do
                        Just states -> putStrLn $ show states
 
 loadCountries = do
-    x <- B.readFile "../data/countries.json"
+    x <- B.readFile "../data/test.json"
     case parseFeatureCollection x of
         Just fcs -> case parseCountries fcs of
                         Just countries -> do
-                            let c = head $ countries
-                            let nt =  insert newTree c
-                            return nt
+                            let c = cGeometry.head $ countries
+                            -- let tree = insert newTree c
+                            --let (Node _ children) =  fromList countries
+                            let point = (-69.95441436767578, 12.518703864466934)
+                            let ok = containsP c point
+                            -- let ok = contains nt point
+                            -- printTree "" tree
+                            --mapM_ (putStrLn. show. depth) children
+                            return ok
 

@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Entities (
-    Entity,
+    Entity(..),
     parseStates,
     parseCountries
 ) where
@@ -26,7 +26,11 @@ data Entity =
             , cAdmin :: String }
   | State { sGeometry :: Geometry
           , sName :: Maybe String
-          , sAdmin :: String } deriving (Show, Eq)
+          , sAdmin :: String } deriving (Eq)
+
+instance Show Entity where
+  show (Country {cName}) = "Country{ " ++ show cName ++ "}"
+  show (State {sName}) = "State{ " ++ show sName ++ "}"  
 
 instance Boundable Entity where
     getBoundingBox Country { cGeometry } = getBoundingBox cGeometry
@@ -38,7 +42,7 @@ parseCountries = mapM featureToCountry . fcFeatures
 
 featureToCountry :: GeoJSONFeature -> Maybe Entity
 featureToCountry GeoJSONFeature { ftType, ftProperties, ftGeometry } = do
-    name <- extractText <$> Map.lookup "SOVEREIGNT" ftProperties
+    name <- extractText <$> Map.lookup "NAME" ftProperties
     admin <- extractText <$> Map.lookup "ADMIN" ftProperties
     return $ Country { cGeometry = ftGeometry
                      , cName = name
