@@ -110,11 +110,6 @@ depth Empty = 0
 depth (Leaf _ _) = 1
 depth (Node _ children) = 1 + (depth $ head children)
 
-fromList :: Boundable a => [a] -> RTree a
-fromList [] = Empty
-fromList [x] = singleton x
-fromList xs = foldr (\x acc -> insert acc x) newTree xs
-
 contains :: Boundable a => RTree a -> Point -> [RTree a]
 contains Empty _ = []
 contains l@(Leaf bb a) p 
