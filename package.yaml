@@ -27,6 +27,7 @@ dependencies:
 - text
 - containers
 - unordered-containers
+- QuickCheck
 
 library:
   source-dirs: src

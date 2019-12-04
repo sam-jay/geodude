@@ -40,6 +40,14 @@ insert n@(Node bb children) e
  where newNode@(Node newBB newChildren) = Node (mergeBB n e) $ insertIntoBestChild children e
 
 
+fromList :: Boundable a => [a] -> RTree a
+fromList xs = foldl insert newTree xs
+
+toList :: RTree a -> [a]
+toList Empty = []
+toList (Leaf _ a) = [a]
+toList (Node _ ts) = concat $ map toList ts
+
 mergeBB :: Boundable a => RTree a -> a -> BoundingBox
 mergeBB Empty e = getBoundingBox e
 mergeBB t e = BB.enlarge (getBoundingBox t) (getBoundingBox e)

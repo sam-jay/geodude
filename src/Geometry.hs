@@ -70,11 +70,8 @@ fromLinearRings rings
                                   , pInnerRings = innerRings }
     where outerRing = head rings
           innerRings = tail rings
-          anyCounterClockwise = atLeastOne (not . isClockwise)
-          
--- can we just use 'any' here?
-atLeastOne :: (a -> Bool) -> [a] -> Bool -- Can [a] be generalized to any monad?
-atLeastOne p = (== Any True) . mconcat . fmap (Any . p)
+          anyCounterClockwise = any (not . isClockwise)
+
 
 -- https://stackoverflow.com/questions/1165647/how-to-determine-if-a-list-of-polygon-points-are-in-clockwise-order
 -- the comparison that works (< 0) is the opposite suggested in the stackoverflow solution

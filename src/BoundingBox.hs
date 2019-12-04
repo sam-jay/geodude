@@ -6,8 +6,9 @@ data BoundingBox = BoundingBox { x1 :: !Double
                                , y1 :: !Double
                                , x2 :: !Double
                                , y2 :: !Double } deriving (Eq)
+
 instance Ord BoundingBox where
- bb1@(BoundingBox _ _ _ _) `compare` bb2@(BoundingBox _ _ _ _) = area bb1 `compare` area bb2
+    bb1 `compare` bb2 = area bb1 `compare` area bb2
 
 class Boundable a where
     getBoundingBox :: a -> BoundingBox
