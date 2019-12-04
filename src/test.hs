@@ -6,7 +6,8 @@ import Data.Aeson.QQ
 import qualified Data.ByteString.Lazy as B
 import Entities
 import RTree
-import BoundingBox (Point)
+import BoundingBox (Boundable, Point, getBoundingBox)
+import Test.QuickCheck
 
 emptyFeatureCollection :: Value
 emptyFeatureCollection = [aesonQQ|
@@ -32,6 +33,15 @@ featureCollectionWithPolygon = [aesonQQ|
     ]
   }
 |]
+
+
+-- check that list -> rtree -> list is preserved
+prop_identity :: [Entity] -> Bool
+prop_identity xs = (toList . fromList) xs == xs
+
+-- check that foldl1 (\bb a -> ) as == getBoundingBox . fromList as
+-- prop_bbox xs = (getBoundingBox . fromList) xs == getBoundingBox $ combine xs
+
 
 loadStates = do
     x <- B.readFile "../data/states_provinces.json"
