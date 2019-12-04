@@ -7,7 +7,8 @@
 
 module Geometry (
     Geometry,
-    GeoError
+    GeoError,
+    containsP
 ) where
 
 import Data.Aeson
@@ -80,9 +81,30 @@ atLeastOne p = (== Any True) . mconcat . fmap (Any . p)
 -- the comparison that works (< 0) is the opposite suggested in the stackoverflow solution
 -- maybe because of the difference between GPS and cartesian coordinate systems?
 isClockwise :: LinearRing -> Bool
-isClockwise = (< 0) . sum . map transformEdge . makeEdges . getLineString
+isClockwise = (> 0) . sum . map transformEdge . makeEdges . getLineString
     where transformEdge ((x1, y1), (x2, y2)) = (x2 - x1) * (y2 + y1)
           makeEdges = zip <$> id <*> tail
+
+-- check whether a geometry contains a point using winding number algo: 
+-- http://geomalgorithms.com/a03-_inclusion.html
+windNum :: LinearRing -> Point -> Bool
+windNum rs (x, y) = (/= 0) . sum $ map checkOneEdge edges
+ where edges = makeEdges $ getLineString rs
+       makeEdges ls = zip ls (tail ls)
+       isLeft (x1, y1) (x2, y2) 
+        | y1 < y2 = crossProduct > 0
+        | y1 > y2 = crossProduct < 0
+        | otherwise = False
+        where crossProduct = ((x2 - x1) * (y - y1)) - ((x - x1) * (y2 - y1))
+       checkOneEdge (p1@(x1, y1), p2@(x2, y2))
+        | y1 <= y && y2 > y && isLeft p1 p2 = 1
+        | y1 > y && y2 <= y && isLeft p1 p2 = -1
+        | otherwise = 0
+
+containsP :: Geometry -> Point -> Bool
+containsP (Polygon {pOuterRing}) p = windNum pOuterRing p
+containsP (MultiPolygon {mPolygons}) p = any (\geo -> windNum (pOuterRing geo) p) mPolygons
+
 
 newtype LinearRing = LinearRing { getLineString :: LineString } deriving (Show,Eq)
 
@@ -119,7 +141,7 @@ isClosedLineString ls
     | [x, y] <- ls, x == y = True
     | x:y:rest <- ls = isClosedLineString (x:rest)
 
-type LineString = [Position]
+type LineString = [Point]
 
-type Position = (Double, Double)
+type Point = (Double, Double)
 

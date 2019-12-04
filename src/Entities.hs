@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Entities (
-    Entity,
+    Entity(..),
     parseStates,
     parseCountries
 ) where
