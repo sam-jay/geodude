@@ -27,17 +27,20 @@ singleton a = Leaf (getBoundingBox a) a
 
 -- generate a tree node which has this list of nodes as its children
 generateNode :: Boundable a => [RTree a] -> RTree a
-generateNode children = Node (mergeBB' $ getBoundingBox <$> children) children
- where mergeBB' [] = error "empty bounding box list"
-       mergeBB' bbs = foldr1 BB.enlarge bbs
+generateNode [] = Empty
+generateNode children = Node newBB children
+  where newBB = mergeBB' $ getBoundingBox <$> children
+        mergeBB' bbs = foldr1 BB.enlarge bbs
 
 insert :: Boundable a => RTree a -> a -> RTree a
 insert Empty e = singleton e
 insert n@(Leaf bb _) e = Node (mergeBB n e) [singleton e, n]
 insert n@(Node bb children) e
- | length newChildren > maxChildren = generateNode $ splitNode newNode
- | otherwise = newNode
- where newNode@(Node newBB newChildren) = Node (mergeBB n e) $ insertIntoBestChild children e
+  | length newChildren > maxChildren = generateNode $ splitNode newNode
+  | otherwise = newNode
+  where newNode = Node newBB newChildren
+        newBB = mergeBB n e
+        newChildren = insertIntoBestChild children e
 
 
 fromList :: Boundable a => [a] -> RTree a
