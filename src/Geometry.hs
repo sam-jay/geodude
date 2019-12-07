@@ -75,8 +75,6 @@ fromLinearRings rings
 
 
 -- https://stackoverflow.com/questions/1165647/how-to-determine-if-a-list-of-polygon-points-are-in-clockwise-order
--- the comparison that works (< 0) is the opposite suggested in the stackoverflow solution
--- maybe because of the difference between GPS and cartesian coordinate systems?
 isClockwise :: LinearRing -> Bool
 isClockwise = (> 0) . sum . map transformEdge . makeEdges . getLineString
     where transformEdge ((x1, y1), (x2, y2)) = (x2 - x1) * (y2 + y1)

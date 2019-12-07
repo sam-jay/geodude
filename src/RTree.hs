@@ -45,7 +45,7 @@ fromList xs = foldl insert newTree xs
 toList :: RTree a -> [a]
 toList Empty = []
 toList (Leaf _ a) = [a]
-toList (Node _ ts) = concat $ map toList ts
+toList (Node _ ts) = concatMap toList ts
 
 mergeBB :: Boundable a => RTree a -> a -> BoundingBox
 mergeBB Empty e = getBoundingBox e
