@@ -6,7 +6,8 @@
 -- https://www.williamyaoh.com/posts/2019-10-19-a-cheatsheet-to-json-handling.html
 
 module Geometry (
-    Geometry,
+    Geometry (..),
+    LinearRing (..),
     GeoError,
     containsP
 ) where

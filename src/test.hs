@@ -8,6 +8,8 @@ import Entities
 import RTree
 import BoundingBox (Boundable, Point, getBoundingBox)
 import Test.QuickCheck
+import qualified Data.Set as Set
+import Data.List (sortBy)
 
 emptyFeatureCollection :: Value
 emptyFeatureCollection = [aesonQQ|
@@ -37,7 +39,7 @@ featureCollectionWithPolygon = [aesonQQ|
 
 -- check that list -> rtree -> list is preserved
 prop_identity :: [Entity] -> Bool
-prop_identity xs = (toList . fromList) xs == xs
+prop_identity xs = (sortBy compare . toList . fromList) xs == sortBy compare xs
 
 -- check that foldl1 (\bb a -> ) as == getBoundingBox . fromList as
 -- prop_bbox xs = (getBoundingBox . fromList) xs == getBoundingBox $ combine xs
