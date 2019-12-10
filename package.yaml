@@ -28,6 +28,8 @@ dependencies:
 - containers
 - unordered-containers
 - QuickCheck
+- random
+- split
 
 library:
   source-dirs: src

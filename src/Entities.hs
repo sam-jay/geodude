@@ -6,8 +6,7 @@ module Entities (
     Entity,
     parseStates,
     parseCountries,
-    containsPoint,
-    foo
+    containsPoint
 ) where
 
 import Geometry

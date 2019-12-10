@@ -9,7 +9,8 @@ module Geometry (
     Geometry (..),
     LinearRing (..),
     GeoError,
-    containsP
+    containsP,
+    fromLineString
 ) where
 
 import Data.Aeson
