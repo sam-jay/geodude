@@ -40,7 +40,9 @@ insert n@(Node bb children) e
   | otherwise = newNode
   where newNode = Node newBB newChildren
         newBB = mergeBB n e
-        newChildren = insertIntoBestChild children e
+        newChildren 
+         | depth n == 2 = (singleton e) : children
+         | otherwise = insertIntoBestChild children e
 
 
 fromList :: Boundable a => [a] -> RTree a
