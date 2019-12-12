@@ -2,12 +2,13 @@
 
 module Generator where
 
-import Geometry
+import qualified Geometry as GM
 import qualified ConvexHull as CH
 import BoundingBox (BoundingBox(..))
 import System.Random
 import Data.Either (fromRight)
 import Data.List.Split (chunksOf)
+import qualified RTree as RT
 
 --  http://david-kremer.fr/haskell/blogging/2018/10/28/haskell-random-number-generation.html
 genRandomNumbersBetween :: Int -> Int -> (Double, Double) -> [Double]
@@ -18,7 +19,7 @@ getPair :: [a] -> (a, a)
 getPair [x, y] = (x, y)
 getPair _ = error "shouldn't happen"
 
-genPolygons :: Int -> BoundingBox -> [Geometry]
+genPolygons :: Int -> BoundingBox -> [GM.Geometry]
 genPolygons n (BoundingBox {x1,y1,x2,y2}) = map makePoly chunks
     where chunks = chunksOf n $ zip xs ys
           xs = genRandomNumbersBetween (numPts * n) seedX (x1, x2)
@@ -26,6 +27,15 @@ genPolygons n (BoundingBox {x1,y1,x2,y2}) = map makePoly chunks
           numPts = 20
           seedX = 100
           seedY = 120
+
+genSampleTree :: RT.RTree GM.Geometry
+genSampleTree = RT.fromList polygons
+    where polygons = concatMap (genPolygons 10) quadrants
+          quadrants = [ BoundingBox { x1 = 0, x2 = 0.49, y1 = 0, y2 = 0.49 }
+                      , BoundingBox { x1 = 0.5, x2 = 1, y1 = 0, y2 = 0.49 }
+                      , BoundingBox { x1 = 0, x2 = 0.49, y1 = 0.5, y2 = 1 }
+                      , BoundingBox { x1 = 0.5, x2 = 1, y1 = 0.5, y2 = 1 }
+                      ]
 
 makePoly :: [(Double, Double)] -> Geometry
 makePoly pts = case lr of

@@ -56,8 +56,14 @@ analyzeTree depth x = do
             tell ("Empty at depth " ++ show depth ++ "\n")
             return $ 0
 
-checkBalancing :: IO ()
-checkBalancing = do
+
+analyzeConstruction :: Writer String Int
+analyzeConstruction = do
+
+
+
+analyzeBalancing :: IO ()
+analyzeBalancing = do
     putStrLn $ snd $ runWriter $ analyzeTree 0 tree
     where tree = fromList polygons
           polygons = concatMap (genPolygons 10) quadrants
@@ -66,6 +72,7 @@ checkBalancing = do
                       , BoundingBox { x1 = 0, x2 = 0.49, y1 = 0.5, y2 = 1 }
                       , BoundingBox { x1 = 0.5, x2 = 1, y1 = 0.5, y2 = 1 }
                       ]
+
 
 -- check that list -> rtree -> list is preserved
 prop_identity :: [E.Entity] -> Bool
