@@ -4,6 +4,7 @@ import BoundingBox (BoundingBox, Boundable, getBoundingBox,Point)
 import qualified BoundingBox as BB
 import Control.Applicative ((<$>))
 import Data.List (sortBy, maximumBy)
+-- import Control.DeepSeq
 
 minChildren = 2
 maxChildren = 4
@@ -19,8 +20,18 @@ instance Boundable (RTree a) where
     getBoundingBox (Leaf bb _) = bb
     getBoundingBox Empty = error "getBoundingBox on Empty"
 
+-- instance NFData a => NFData (RTree a) where
+--   rnf (Empty) = ()
+--   rnf (Leaf _ a) = rnf a
+--   rnf (Node _ children) = rnf children
+
 newTree :: RTree a
 newTree = Empty
+
+getChildren :: RTree a -> [RTree a]
+getChildren Empty = error "Empty no child"
+getChildren (Leaf _ _) = error "Leaf no child"
+getChildren (Node _ children) = children
 
 singleton :: Boundable a => a -> RTree a
 singleton a = Leaf (getBoundingBox a) a
@@ -36,14 +47,18 @@ insert :: Boundable a => RTree a -> a -> RTree a
 insert Empty e = singleton e
 insert n@(Leaf bb _) e = Node (mergeBB n e) [singleton e, n]
 insert n@(Node bb children) e
-  | length newChildren > maxChildren = generateNode $ splitNode newNode
+  | length (getChildren newNode) > maxChildren = generateNode $ splitNode newNode
   | otherwise = newNode
-  where newNode = Node newBB newChildren
-        newBB = mergeBB n e
-        newChildren 
-         | depth n == 2 = (singleton e) : children
-         | otherwise = insertIntoBestChild children e
+  where newNode= addToNode n e
 
+addToNode :: Boundable a => RTree a -> a -> RTree a
+addToNode old elem = Node newBB newChildren
+ where newBB = mergeBB old elem
+       oldChildren = getChildren old
+       directAdd = (singleton elem) : filter (\c -> (getBoundingBox c) /= (getBoundingBox elem)) oldChildren 
+       newChildren 
+        | depth old == 2 = directAdd
+        | otherwise = insertIntoBestChild oldChildren elem
 
 fromList :: Boundable a => [a] -> RTree a
 fromList xs = foldl insert newTree xs
@@ -61,12 +76,17 @@ mergeBB t e = BB.enlarge (getBoundingBox t) (getBoundingBox e)
 -- insert element to the best child of a list of tree nodes by finding the least enlargement
 -- return the list of nodes after insertion
 insertIntoBestChild :: Boundable a => [RTree a] -> a -> [RTree a]
-insertIntoBestChild children elem = (insert hd elem) : tl
- where (hd:tl) = sortBy compare' children
+insertIntoBestChild children@(x:xs) elem
+ | getBoundingBox x == getBoundingBox best = (inserted best elem) ++ xs
+ | otherwise = x : insertIntoBestChild xs elem
+ where (best:tl) = sortBy compare' children
        compare' x y = diffBB x `compare` diffBB y
-       diffBB x = enlargedArea x - originalArea x
+       diffBB x = BB.area (mergeBB x elem) - originalArea x
        originalArea = BB.area . getBoundingBox
-       enlargedArea = BB.area . (BB.enlarge $ getBoundingBox elem) . getBoundingBox
+       inserted node e
+        | length (getChildren newNode) > maxChildren = splitNode newNode
+        | otherwise = [newNode]
+        where newNode = addToNode node e
 
 -- split a tree node into 2 nodes by regrouping its children into 2 groups
 splitNode :: Boundable a => RTree a -> [RTree a]
