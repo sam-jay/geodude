@@ -57,17 +57,27 @@ analyzeTree depth x = do
             return $ 0
 
 
-analyzeConstruction :: Writer String Int
-analyzeConstruction = do
+{-analyzeConstruction :: Boundable a => [a] -> IO ()
+analyzeConstruction l = putStrLn . snd . runWriter $ helper newTree l
+    where helper :: Boundable a => RTree a -> [a] -> Writer String Int
+          helper tree elements = do
 
-
+            let tree' = insert tree x
+            tell $ "Tree after adding element:\n"
+            tell $ snd $ runWriter $ analyzeTree 0 tree'
+            helper tree' xs
+-}
 
 analyzeBalancing :: IO ()
 analyzeBalancing = do
-    putStrLn $ snd $ runWriter $ analyzeTree 0 tree
-    where tree = fromList polygons
-          polygons = concatMap (genPolygons 10) quadrants
-          quadrants = [ BoundingBox { x1 = 0, x2 = 0.49, y1 = 0, y2 = 0.49 }
+    putStrLn $ snd $ runWriter $ analyzeTree 0 testTree
+
+testTree :: RTree Geometry
+testTree = fromList testPolygons
+
+testPolygons :: [Geometry]
+testPolygons = concatMap (genPolygons 10) quadrants
+    where quadrants = [ BoundingBox { x1 = 0, x2 = 0.49, y1 = 0, y2 = 0.49 }
                       , BoundingBox { x1 = 0.5, x2 = 1, y1 = 0, y2 = 0.49 }
                       , BoundingBox { x1 = 0, x2 = 0.49, y1 = 0.5, y2 = 1 }
                       , BoundingBox { x1 = 0.5, x2 = 1, y1 = 0.5, y2 = 1 }

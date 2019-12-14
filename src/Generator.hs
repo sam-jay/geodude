@@ -37,9 +37,9 @@ genSampleTree = RT.fromList polygons
                       , BoundingBox { x1 = 0.5, x2 = 1, y1 = 0.5, y2 = 1 }
                       ]
 
-makePoly :: [(Double, Double)] -> Geometry
+makePoly :: [(Double, Double)] -> GM.Geometry
 makePoly pts = case lr of
-                    Right x -> Polygon { pOuterRing = x, pInnerRings = [] }
+                    Right x -> GM.Polygon { GM.pOuterRing = x, GM.pInnerRings = [] }
                     Left m -> error $ show m
-    where lr = fromLineString $ ch ++ [head ch]
+    where lr = GM.fromLineString $ ch ++ [head ch]
           ch = map getPair $ CH.convexHull . map (\p -> [fst p, snd p]) $ pts
