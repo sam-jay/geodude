@@ -10,13 +10,16 @@ module Geometry (
     LinearRing (..),
     GeoError,
     containsP,
-    fromLineString
+    fromLineString,
+    Point
 ) where
 
 import Data.Aeson
 import Data.Monoid
 import BoundingBox (BoundingBox(BoundingBox), Boundable, getBoundingBox)
 import qualified BoundingBox as BB
+import GHC.Generics (Generic)
+import Control.DeepSeq
 
 data GeoError =
     ClockwiseOuterRing { badRing :: LinearRing }
@@ -36,8 +39,9 @@ data Geometry =
     Polygon { pOuterRing :: LinearRing
             , pInnerRings :: [LinearRing] }
   | MultiPolygon { mPolygons :: [Geometry] }
-  deriving (Show, Eq)
+  deriving (Show, Eq, Generic)
 
+instance NFData Geometry
 
 instance Boundable Geometry where
     getBoundingBox Polygon { pOuterRing } = getBoundingBox pOuterRing
@@ -103,7 +107,10 @@ containsP (Polygon {pOuterRing}) p = windNum pOuterRing p
 containsP (MultiPolygon {mPolygons}) p = any (\geo -> windNum (pOuterRing geo) p) mPolygons
 
 
-newtype LinearRing = LinearRing { getLineString :: LineString } deriving (Show,Eq)
+newtype LinearRing = LinearRing { getLineString :: LineString
+                                } deriving (Show, Eq, Generic)
+
+instance NFData LinearRing
 
 instance Boundable LinearRing where
     getBoundingBox LinearRing { getLineString } 

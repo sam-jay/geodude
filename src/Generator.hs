@@ -19,6 +19,17 @@ getPair :: [a] -> (a, a)
 getPair [x, y] = (x, y)
 getPair _ = error "shouldn't happen"
 
+
+genPoints :: BoundingBox -> Int -> [GM.Point]
+genPoints bb n = zip xs ys
+    where xs = genRandomNumbersBetween n seedX (xMin, xMax)
+          ys = genRandomNumbersBetween n seedY (yMin, yMax)
+          BoundingBox {x1, y1, x2, y2} = bb
+          [xMin, yMin, xMax, yMax] = [x1, y1, x2, y2]
+          seedX = 100
+          seedY = 120
+
+
 genPolygons :: Int -> BoundingBox -> [GM.Geometry]
 genPolygons n (BoundingBox {x1,y1,x2,y2}) = map makePoly chunks
     where chunks = chunksOf n $ zip xs ys

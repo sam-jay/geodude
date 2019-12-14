@@ -1,6 +1,7 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE DeriveGeneric #-}
 
 module Entities (
     Entity,
@@ -22,6 +23,8 @@ import Data.Aeson
 import Data.Aeson.Types (Value, Value (String, Null, Object, Number))
 import qualified Data.Text as T
 import BoundingBox (area, Boundable, getBoundingBox)
+import GHC.Generics (Generic)
+import Control.DeepSeq
 
 data Entity =
     Country { cGeometry :: Geometry
@@ -29,7 +32,10 @@ data Entity =
             , cAdmin :: String }
   | State { sGeometry :: Geometry
           , sName :: Maybe String
-          , sAdmin :: String } deriving (Eq)
+          , sAdmin :: String } deriving (Eq, Generic)
+
+
+instance NFData Entity
 
 instance Ord Entity where
     e1@(Country {}) `compare` e2@(State {}) = GT

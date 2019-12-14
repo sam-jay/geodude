@@ -1,11 +1,18 @@
+{-# LANGUAGE DeriveGeneric #-}
+
 module BoundingBox where
 
 import Data.List (intersperse)
+import GHC.Generics (Generic)
+import Control.DeepSeq
+
 
 data BoundingBox = BoundingBox { x1 :: !Double
                                , y1 :: !Double
                                , x2 :: !Double
-                               , y2 :: !Double } deriving (Eq)
+                               , y2 :: !Double } deriving (Eq, Generic)
+
+instance NFData BoundingBox
 
 instance Ord BoundingBox where
     bb1 `compare` bb2 = area bb1 `compare` area bb2

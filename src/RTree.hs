@@ -1,9 +1,14 @@
+{-# LANGUAGE DeriveGeneric #-}
+
 module RTree where
 
 import BoundingBox (BoundingBox, Boundable, getBoundingBox,Point)
 import qualified BoundingBox as BB
 import Control.Applicative ((<$>))
 import Data.List (sortBy, maximumBy)
+import GHC.Generics (Generic)
+import Control.DeepSeq
+
 -- import Control.DeepSeq
 
 minChildren = 2
@@ -13,7 +18,9 @@ data RTree a =
     Node BoundingBox [RTree a]
   | Leaf BoundingBox a
   | Empty
-  deriving (Show, Eq)
+  deriving (Show, Eq, Generic)
+
+instance NFData a => NFData (RTree a)
 
 instance Boundable (RTree a) where
     getBoundingBox (Node bb _) = bb
@@ -159,7 +166,7 @@ partition l r toAdd
 depth :: Boundable a => RTree a -> Int
 depth Empty = 0
 depth (Leaf _ _) = 1
-depth (Node _ children) = 1 + (depth $ head children)
+depth (Node _ children) = 1 + (depth $ head children) -- TODO(use max of children)
 
 -- given a tree and a point, return all leaf nodes as a list that contain the point
 contains :: Boundable a => RTree a -> Point -> [RTree a]
