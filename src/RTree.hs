@@ -166,7 +166,7 @@ partition l r toAdd
 depth :: Boundable a => RTree a -> Int
 depth Empty = 0
 depth (Leaf _ _) = 1
-depth (Node _ children) = 1 + (depth $ head children) -- TODO(use max of children)
+depth (Node _ children) = 1 + (maximum $ map depth children)
 
 -- given a tree and a point, return all leaf nodes as a list that contain the point
 contains :: Boundable a => RTree a -> Point -> [RTree a]
