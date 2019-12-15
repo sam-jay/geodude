@@ -5,6 +5,7 @@ import Geometry (Geometry, Point)
 import qualified RTree as RT
 import Control.Parallel.Strategies (using, parList, rdeepseq)
 import qualified Generator as G
+import Control.DeepSeq
 import BoundingBox (BoundingBox(..), Boundable)
 
 data Execution = Parallel | Sequential deriving (Show)
@@ -69,9 +70,20 @@ generateTestPoints n = G.genPoints world n
 generateNewEntities :: Execution -> [Entity] -> Int -> [Entity]
 generateNewEntities e bounds numEntities = [] -- TODO: finish this
 
-makeTree :: Boundable a => Execution -> [a] -> RT.RTree a
+makeTree :: (Boundable a, NFData a) => Execution -> [a] -> RT.RTree a
 makeTree Sequential xs = RT.fromList xs
-makeTree Parallel xs = RT.fromList xs -- TODO: finish this
+makeTree Parallel xs = let chunks = split numChunks xs in makeTree_Strat chunks 
+ where numChunks = 10
+
+makeTree_Strat :: (Boundable a, NFData a) => [[a]] -> RT.RTree a
+makeTree_Strat entitiess = foldr1 RT.union (map RT.fromList entitiess `using` parList rdeepseq)
+
+split :: Int -> [a] -> [[a]]
+split numChunks xs = chunk (length xs `quot` numChunks) xs
+
+chunk :: Int -> [a] -> [[a]]
+chunk _ [] = []
+chunk n xs = let (as, bs) = splitAt n xs in as : chunk n bs
 
 world :: BoundingBox
 world = BoundingBox { x1 = longMin
