@@ -1,14 +1,23 @@
 module Evaluate where
 
-import Entities (Entity)
+import qualified Entities as E
 import Geometry (Geometry, Point)
+import GeoJSONParser (parseFeatureCollection, GeoJSONFeatureCollection)
 import qualified RTree as RT
 import Control.Parallel.Strategies (using, parList, rdeepseq)
 import qualified Generator as G
+import qualified Data.ByteString.Lazy as B
 import Control.DeepSeq
+import Data.List.Split (chunksOf)
 import BoundingBox (BoundingBox(..), Boundable)
+import System.Directory
+import Control.Concurrent.ParallelIO.Global
 
 data Execution = Parallel | Sequential deriving (Show)
+
+countryJson = "../data/full/countries.json"
+stateJson = "../data/full/states_provinces.json"
+separatePath = "../data/separate"
 
 -- Evaluate containment on a large number of points. (Sequential)
 evalManyPointsSequential :: IO ()
@@ -56,18 +65,49 @@ evaluate e numPoints additionalEntities = do
     let results = case e of
                     Sequential -> op
                     Parallel -> op `using` parList rdeepseq
-                    where op = map (RT.contains tree) points
-    putStrLn $ show $ length results
+                    where op = map (\p -> filter (isContain p) $ RT.contains tree p) points
+                          isContain p leaf = E.containsPoint (RT.getElem leaf) p
+    print $ length results
 
 
-loadTestEntities :: Execution -> IO [Entity]
-loadTestEntities e = do
-    return [] :: IO [Entity] -- TODO: finish this
+loadTestEntities :: Execution -> IO [E.Entity]
+loadTestEntities Sequential = do
+    countries <- loadCountries countryJson
+    states <- loadStates stateJson
+    return (countries ++ states)
+loadTestEntities Parallel = do
+    filePaths <- getDirectoryContents separatePath
+    let paths = filter (\path -> path `notElem` [".","..",".DS_Store"]) filePaths
+    es <- parallel (map load paths) >> stopGlobalPool
+    return $ concat es
+
+
+load :: String -> IO [E.Entity]
+load path@('s': _) = loadStates path
+load path@('c': _) = loadCountries path
+
+loadStates :: String -> IO [E.Entity]
+loadStates path = do
+    x <- B.readFile path
+    case parseFeatureCollection x of
+        Nothing -> error "error parsing feature collection"
+        Just fc -> case E.parseStates fc of
+                       Nothing -> error "error parsing states"
+                       Just states -> return states 
+
+loadCountries :: String -> IO [E.Entity]
+loadCountries path = do
+    x <- B.readFile path
+    case parseFeatureCollection x of
+        Nothing -> error "error parsing feature collection"
+        Just fcs -> case E.parseCountries fcs of
+                        Nothing -> error "error parsing states"
+                        Just countries -> return countries
 
 generateTestPoints :: Int -> [Point]
 generateTestPoints n = G.genPoints world n
 
-generateNewEntities :: Execution -> [Entity] -> Int -> [Entity]
+generateNewEntities :: Execution -> [E.Entity] -> Int -> [E.Entity]
 generateNewEntities e bounds numEntities = [] -- TODO: finish this
 
 makeTree :: (Boundable a, NFData a) => Execution -> [a] -> RT.RTree a
@@ -79,11 +119,7 @@ makeTree_Strat :: (Boundable a, NFData a) => [[a]] -> RT.RTree a
 makeTree_Strat entitiess = foldr1 RT.union (map RT.fromList entitiess `using` parList rdeepseq)
 
 split :: Int -> [a] -> [[a]]
-split numChunks xs = chunk (length xs `quot` numChunks) xs
-
-chunk :: Int -> [a] -> [[a]]
-chunk _ [] = []
-chunk n xs = let (as, bs) = splitAt n xs in as : chunk n bs
+split numChunks xs = chunksOf (length xs `quot` numChunks) xs
 
 world :: BoundingBox
 world = BoundingBox { x1 = longMin

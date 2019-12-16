@@ -1,1 +1,3 @@
 # geodude
+## Usage
+

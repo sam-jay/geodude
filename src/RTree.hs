@@ -9,8 +9,6 @@ import Data.List (sortBy, maximumBy)
 import GHC.Generics (Generic)
 import Control.DeepSeq
 
--- import Control.DeepSeq
-
 minChildren = 2
 maxChildren = 4
 
@@ -36,9 +34,14 @@ newTree :: RTree a
 newTree = Empty
 
 getChildren :: RTree a -> [RTree a]
-getChildren Empty = error "Empty no child"
-getChildren (Leaf _ _) = error "Leaf no child"
+getChildren Empty = error "Empty does not have child"
+getChildren (Leaf _ _) = error "Leaf does not have child"
 getChildren (Node _ children) = children
+
+getElem :: Boundable a => RTree a -> a
+getElem Empty = error "Empty does not have elem"
+getElem (Leaf _ e) = e
+getElem (Node _ _) = error "Node does not have elem"
 
 singleton :: Boundable a => a -> RTree a
 singleton a = Leaf (getBoundingBox a) a

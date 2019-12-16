@@ -33,6 +33,7 @@ dependencies:
 - mtl
 - parallel
 - deepseq
+- directory
 
 library:
   source-dirs: src
