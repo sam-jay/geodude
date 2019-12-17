@@ -1,6 +1,6 @@
 # geodude
 ## Usage
-###1. Main.hs
+1. Main.hs
 Accepts a path of .txt file which contains lines of GPS coordinates and the mode the program should run with, and then returns coordinates togethering with the country and state it belongs to.
 
 ```
@@ -25,7 +25,7 @@ returns
 ((131.8359375,-23.24134610238612),[State{ Just "Northern Territory"},Country{ "Australia"}])
 ```
 
-###2. evaluatePerformance.hs
+2. evaluatePerformance.hs
 Accepts loadMode, buildTreeMode, queryMode, numPoint, numEntity five args and runs program with numPoint points and numEntity entities under specific modes. The main purpose of this function is to evaluate the effectiveness of parallism for different part of the program, so the final result is just the length of result list.
 
 ```
