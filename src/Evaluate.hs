@@ -10,14 +10,14 @@ import qualified Data.ByteString.Lazy as B
 import Control.DeepSeq
 import Data.List.Split (chunksOf)
 import BoundingBox (BoundingBox(..), Boundable)
-import System.Directory
+import System.Directory (getDirectoryContents)
 import Control.Concurrent.ParallelIO.Global
 
 data Execution = Parallel | Sequential deriving (Show)
 
 countryJson = "../data/full/countries.json"
 stateJson = "../data/full/states_provinces.json"
-separatePath = "../data/separate"
+chunkedJsonPath = "../data/separate"
 
 -- Evaluate containment on a large number of points. (Sequential)
 evalManyPointsSequential :: IO ()
@@ -76,9 +76,11 @@ loadTestEntities Sequential = do
     states <- loadStates stateJson
     return (countries ++ states)
 loadTestEntities Parallel = do
-    filePaths <- getDirectoryContents separatePath
-    let paths = filter (\path -> path `notElem` [".","..",".DS_Store"]) filePaths
-    es <- parallel (map load paths) >> stopGlobalPool
+    filePaths <- getDirectoryContents chunkedJsonPath
+    let paths = filter (\path -> path `notElem` [".","..",".DS_Store"]) filePaths -- better to just check if path ends with .json?
+    es <- parallel (map load paths)
+    -- can't call stopGlobalPool here because it makes the entire expression of type IO ()
+    -- TODO: call stopGlobalPool at the end of main or some other function that returns IO ()
     return $ concat es
 
 
