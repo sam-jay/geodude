@@ -7,7 +7,8 @@ module Entities (
     Entity,
     parseStates,
     parseCountries,
-    containsPoint
+    containsPoint,
+    buildEntityWithGeo
 ) where
 
 import Geometry
@@ -99,4 +100,7 @@ extractMaybeText Null = Nothing
 containsPoint :: Entity -> (Double, Double) -> Bool
 containsPoint (Country {cGeometry}) p = containsP cGeometry p
 containsPoint (State {sGeometry}) p = containsP sGeometry p
+
+buildEntityWithGeo :: Geometry -> Entity
+buildEntityWithGeo geo = State {sGeometry = geo, sName = Nothing, sAdmin = "NA"}
 

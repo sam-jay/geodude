@@ -2,6 +2,7 @@
 
 module RTree where
 
+-- reference: http://hackage.haskell.org/package/data-r-tree-0.0.5.0/docs/Data-RTree.html --
 import BoundingBox (BoundingBox, Boundable, getBoundingBox,Point)
 import qualified BoundingBox as BB
 import Control.Applicative ((<$>))
@@ -16,7 +17,7 @@ data RTree a =
     Node BoundingBox [RTree a]
   | Leaf BoundingBox a
   | Empty
-  deriving (Show, Eq, Generic)
+  deriving (Eq, Generic)
 
 instance NFData a => NFData (RTree a)
 
@@ -25,10 +26,10 @@ instance Boundable (RTree a) where
     getBoundingBox (Leaf bb _) = bb
     getBoundingBox Empty = error "getBoundingBox on Empty"
 
--- instance NFData a => NFData (RTree a) where
---   rnf (Empty) = ()
---   rnf (Leaf _ a) = rnf a
---   rnf (Node _ children) = rnf children
+instance Show a => Show (RTree a) where
+  show Empty = "Empty"
+  show (Leaf _ elem) = show elem
+  show (Node _ children) = show children
 
 newTree :: RTree a
 newTree = Empty

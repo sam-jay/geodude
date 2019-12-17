@@ -34,6 +34,7 @@ dependencies:
 - parallel
 - deepseq
 - directory
+- parallel-io
 
 library:
   source-dirs: src

@@ -32,7 +32,7 @@ genPoints bb n = zip xs ys
 
 genPolygons :: Int -> BoundingBox -> [GM.Geometry]
 genPolygons n (BoundingBox {x1,y1,x2,y2}) = map makePoly chunks
-    where chunks = chunksOf n $ zip xs ys
+    where chunks = chunksOf numPts $ zip xs ys
           xs = genRandomNumbersBetween (numPts * n) seedX (x1, x2)
           ys = genRandomNumbersBetween (numPts * n) seedY (y1, y2)
           numPts = 20

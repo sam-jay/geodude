@@ -13,6 +13,8 @@ import Data.List (sortBy, concatMap)
 import Generator (genPolygons)
 import Geometry (Geometry)
 import Control.Monad.Writer
+import qualified Evaluate as EV
+import System.Directory
 
 emptyFeatureCollection :: Value
 emptyFeatureCollection = [aesonQQ|
@@ -93,25 +95,32 @@ prop_identity xs = (sortBy compare . toList . fromList) xs == sortBy compare xs
 
 
 loadStates = do
-    x <- B.readFile "../data/states_provinces.json"
+    x <- B.readFile "../data/full/states_provinces.json"
     case parseFeatureCollection x of
         Nothing -> error "error parsing feature collection"
         Just fc -> case E.parseStates fc of
                        Nothing -> error "error parsing states"
-                       Just states -> putStrLn $ show states
+                       Just states -> do 
+                          let tree = fromList states
+                              -- point = (-69.95441436767578, 12.518703864466934)
+                              -- ok = contains tree point
+                              -- result = filter (\leaf -> E.containsPoint (getElem leaf) point) ok
+                          return $ depth tree
+
 
 loadCountries = do
-    x <- B.readFile "../data/countries.json"
+    x <- B.readFile "../data/full/countries.json"
     case parseFeatureCollection x of
         Just fcs -> case E.parseCountries fcs of
                         Just countries -> do
-                            let c = head $ countries
-                            -- let tree = insert newTree c
+                            let c = countries
+                            let tree = fromList c
                             --let (Node _ children) =  fromList countries
                             let point = (-69.95441436767578, 12.518703864466934)
-                            let ok = E.containsPoint c point
+                            let ok = contains tree point
+                                result = filter (\leaf -> E.containsPoint (getElem leaf) point) ok
                             -- let ok = contains nt point
                             -- printTree "" tree
+                            -- print $ depth tree
                             --mapM_ (putStrLn. show. depth) children
-                            return ok
-
+                            return result
