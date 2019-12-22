@@ -1,20 +1,16 @@
 {-# LANGUAGE QuasiQuotes #-}
 
-import GeoJSONParser (parseFeatureCollection, GeoJSONFeatureCollection)
+import GeoJSONParser (parseFeatureCollection)
 import Data.Aeson
 import Data.Aeson.QQ
 import qualified Data.ByteString.Lazy as B
 import qualified Entities as E
 import RTree
 import BoundingBox
-import Test.QuickCheck
-import qualified Data.Set as Set
 import Data.List (sortBy, concatMap)
 import Generator (genPolygons)
 import Geometry (Geometry)
 import Control.Monad.Writer
-import qualified Evaluate as EV
-import System.Directory
 
 emptyFeatureCollection :: Value
 emptyFeatureCollection = [aesonQQ|
@@ -43,19 +39,19 @@ featureCollectionWithPolygon = [aesonQQ|
 
 
 analyzeTree :: Int -> RTree a -> Writer String Int
-analyzeTree depth x = do
+analyzeTree depth' x = do
     case x of
-        Node bb cs -> do
+        Node _ cs -> do
             tell $ "Node with " ++ show numChildren ++
-                   " children at depth " ++ show depth ++ "\n"
-            tell $ concatMap (snd . runWriter . analyzeTree (depth + 1)) cs
+                   " children at depth " ++ show depth' ++ "\n"
+            tell $ concatMap (snd . runWriter . analyzeTree (depth' + 1)) cs
             return $ numChildren
             where numChildren = length cs
-        Leaf bb x -> do
-            tell ("Leaf at depth " ++ show depth ++ "\n")
+        Leaf _ _ -> do
+            tell ("Leaf at depth " ++ show depth' ++ "\n")
             return $ 1
         Empty -> do
-            tell ("Empty at depth " ++ show depth ++ "\n")
+            tell ("Empty at depth " ++ show depth' ++ "\n")
             return $ 0
 
 
@@ -93,7 +89,7 @@ prop_identity xs = (sortBy compare . toList . fromList) xs == sortBy compare xs
 -- check that foldl1 (\bb a -> ) as == getBoundingBox . fromList as
 -- prop_bbox xs = (getBoundingBox . fromList) xs == getBoundingBox $ combine xs
 
-
+loadStates :: IO Int
 loadStates = do
     x <- B.readFile "../data/full/states_provinces.json"
     case parseFeatureCollection x of
@@ -108,10 +104,13 @@ loadStates = do
                           return $ depth tree
 
 
+loadCountries :: IO [RTree E.Entity]
 loadCountries = do
     x <- B.readFile "../data/full/countries.json"
     case parseFeatureCollection x of
+        Nothing -> error "no feature collection"
         Just fcs -> case E.parseCountries fcs of
+                        Nothing -> error "no countries"
                         Just countries -> do
                             let c = countries
                             let tree = fromList c

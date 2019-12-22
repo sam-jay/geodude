@@ -6,7 +6,6 @@ import qualified Geometry as GM
 import qualified ConvexHull as CH
 import BoundingBox (BoundingBox(..))
 import System.Random
-import Data.Either (fromRight)
 import Data.List.Split (chunksOf)
 import qualified RTree as RT
 

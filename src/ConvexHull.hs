@@ -4,6 +4,8 @@ module ConvexHull where
 import Data.List (sortBy, groupBy, maximumBy)
 import Data.Ord (comparing)
 
+x :: [a] -> a
+y :: [b] -> b
 (x, y) = ((!! 0), (!! 1))
 
 compareFrom :: (Num a, Ord a) => [a] -> [a] -> [a] -> Ordering

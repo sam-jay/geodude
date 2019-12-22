@@ -2,8 +2,13 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
--- https://artyom.me/aeson
--- https://www.williamyaoh.com/posts/2019-10-19-a-cheatsheet-to-json-handling.html
+{-  References:
+
+    https://artyom.me/aeson
+    https://www.williamyaoh.com/posts/2019-10-19-a-cheatsheet-to-json-handling.html
+    https://stackoverflow.com/questions/1165647/how-to-determine-if-a-list-of-polygon-points-are-in-clockwise-order
+    http://geomalgorithms.com/a03-_inclusion.html
+-}
 
 module Geometry (
     Geometry (..),
@@ -15,9 +20,11 @@ module Geometry (
 ) where
 
 import Data.Aeson
-import Data.Monoid
-import BoundingBox (BoundingBox(BoundingBox), Boundable, getBoundingBox)
-import qualified BoundingBox as BB
+import BoundingBox ( BoundingBox(..)
+                   , Boundable
+                   , getBoundingBox
+                   , enlarge
+                   )
 import GHC.Generics (Generic)
 import Control.DeepSeq
 
@@ -29,8 +36,10 @@ data GeoError =
   | UnknownGeometryType
 
 instance Show GeoError where
-    show ClockwiseOuterRing { badRing } = "Polygon has invalid clockwise outer ring: " ++ show badRing
-    show CounterClockwiseInnerRing = "Polygon has invalid counterclockwise inner ring(s)."
+    show ClockwiseOuterRing { badRing } =
+        "Polygon has invalid clockwise outer ring: " ++ show badRing
+    show CounterClockwiseInnerRing =
+        "Polygon has invalid counterclockwise inner ring(s)."
     show LineStringTooShort = "LineString too short."
     show LineStringNotClosed = "LineString not closed."
     show UnknownGeometryType = "Unknown geometry type."
@@ -45,29 +54,29 @@ instance NFData Geometry
 
 instance Boundable Geometry where
     getBoundingBox Polygon { pOuterRing } = getBoundingBox pOuterRing
-    getBoundingBox MultiPolygon { mPolygons } = foldl1 BB.enlarge (map getBoundingBox mPolygons)
-
+    getBoundingBox MultiPolygon { mPolygons } = foldl1 enlarge $
+        map getBoundingBox mPolygons
 
 instance FromJSON Geometry where
     parseJSON = withObject "Geometry" $ \obj -> do
         _type <- obj .: "type"
         case _type of
-            String "Polygon" -> do linearRings <- obj .: "coordinates"
-                                   case fromLinearRings linearRings of
-                                       Left e -> error $ show e
-                                       Right p -> return $ p
-            String "MultiPolygon" -> do linearRingsList <- obj .: "coordinates"
-                                        let polygons = fromLinearRings <$> linearRingsList :: [Either GeoError Geometry]
-                                        return $ MultiPolygon { mPolygons = fmap extract polygons }
-                                        where extract :: Either GeoError Geometry -> Geometry
-                                              extract (Left e) = error $ show e
-                                              extract (Right p) = p
+            String "Polygon" ->
+                do linearRings <- obj .: "coordinates"
+                   return $ unwrap $ fromLinearRings linearRings
+            String "MultiPolygon" ->
+                do linearRingsList <- obj .: "coordinates"
+                   let polygons = fromLinearRings <$> linearRingsList
+                   return $ MultiPolygon { mPolygons = fmap unwrap polygons }
             _ -> error $ show UnknownGeometryType
 
-{-
-A linear ring MUST follow the right-hand rule with respect to the
-area it bounds, i.e., exterior rings are counterclockwise, and
-holes are clockwise.
+unwrap :: Show a => Either a b -> b
+unwrap (Left e) = error $ show e
+unwrap (Right p) = p
+
+{-  A linear ring MUST follow the right-hand rule with respect to the
+    area it bounds, i.e., exterior rings are counterclockwise, and
+    holes are clockwise.
 -}
 fromLinearRings :: [LinearRing] -> Either GeoError Geometry
 fromLinearRings rings
@@ -79,33 +88,31 @@ fromLinearRings rings
           innerRings = tail rings
           anyCounterClockwise = any (not . isClockwise)
 
-
--- https://stackoverflow.com/questions/1165647/how-to-determine-if-a-list-of-polygon-points-are-in-clockwise-order
 isClockwise :: LinearRing -> Bool
 isClockwise = (> 0) . sum . map transformEdge . makeEdges . getLineString
     where transformEdge ((x1, y1), (x2, y2)) = (x2 - x1) * (y2 + y1)
           makeEdges = zip <$> id <*> tail
 
--- check whether a geometry contains a point using winding number algo: 
--- http://geomalgorithms.com/a03-_inclusion.html
+-- Check whether a polygon contains a point using winding number algo
 windNum :: LinearRing -> Point -> Bool
-windNum rs (x, y) = (/= 0) . sum $ map checkOneEdge edges
- where edges = makeEdges $ getLineString rs
+windNum rs (x, y) = (/= zero) . sum $ map checkOneEdge edges
+ where zero = 0 :: Int
+       edges = makeEdges $ getLineString rs
        makeEdges ls = zip ls (tail ls)
-       isLeft (x1, y1) (x2, y2) 
-        | y1 < y2 = crossProduct > 0
-        | y1 > y2 = crossProduct < 0
-        | otherwise = False
-        where crossProduct = ((x2 - x1) * (y - y1)) - ((x - x1) * (y2 - y1))
-       checkOneEdge (p1@(x1, y1), p2@(x2, y2))
-        | y1 <= y && y2 > y && isLeft p1 p2 = 1
-        | y1 > y && y2 <= y && isLeft p1 p2 = -1
-        | otherwise = 0
+       isLeft (x1, y1) (x2, y2)
+            | y1 < y2 = crossProduct > 0
+            | y1 > y2 = crossProduct < 0
+            | otherwise = False
+            where crossProduct = ((x2 - x1) * (y - y1))
+                                    - ((x - x1) * (y2 - y1))
+       checkOneEdge (p1@(_, y1), p2@(_, y2))
+            | y1 <= y && y2 > y && isLeft p1 p2 = 1
+            | y1 > y && y2 <= y && isLeft p1 p2 = -1
+            | otherwise = 0
 
-containsP :: Geometry -> Point -> Bool
-containsP (Polygon {pOuterRing}) p = windNum pOuterRing p
-containsP (MultiPolygon {mPolygons}) p = any (\geo -> windNum (pOuterRing geo) p) mPolygons
-
+containsP :: Point -> Geometry -> Bool
+containsP p (Polygon {pOuterRing}) = windNum pOuterRing p
+containsP p (MultiPolygon {mPolygons}) = any (containsP p) mPolygons
 
 newtype LinearRing = LinearRing { getLineString :: LineString
                                 } deriving (Show, Eq, Generic)
@@ -126,11 +133,9 @@ instance Boundable LinearRing where
 instance FromJSON LinearRing where
     parseJSON jsn = do
         ls <- parseJSON jsn
-        case fromLineString ls of
-            Left e -> fail $ show e
-            Right lr -> return lr
+        return $ unwrap $ fromLineString ls
 
-{- A linear ring is a closed LineString with four or more positions. -}
+-- A linear ring is a closed LineString with four or more positions.
 fromLineString :: LineString -> Either GeoError LinearRing
 fromLineString ls
     | length ls < 4 = Left LineStringTooShort
@@ -140,12 +145,11 @@ fromLineString ls
 isClosedLineString :: LineString -> Bool
 isClosedLineString ls
     | [] <- ls = True
-    | [x] <- ls = True
+    | [_] <- ls = True
     | [x, y] <- ls, x /= y = False
     | [x, y] <- ls, x == y = True
-    | x:y:rest <- ls = isClosedLineString (x:rest)
+    | x:_:rest <- ls = isClosedLineString (x:rest)
 
 type LineString = [Point]
 
 type Point = (Double, Double)
-

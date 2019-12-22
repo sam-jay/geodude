@@ -6,7 +6,6 @@ import Data.List (intersperse)
 import GHC.Generics (Generic)
 import Control.DeepSeq
 
-
 data BoundingBox = BoundingBox { x1 :: !Double
                                , y1 :: !Double
                                , x2 :: !Double
@@ -22,22 +21,22 @@ class Boundable a where
 
 type Point = (Double, Double)
 
---get the least enlargement boundingbox that contains bb1 and bb2
+-- Get the smallest bounding box that contains the two input bounding boxes
 enlarge :: BoundingBox -> BoundingBox -> BoundingBox
-enlarge b1 b2 = BoundingBox (min x1 x1') (min y1 y1') (max x2 x2') (max y2 y2')
-    where BoundingBox x1 y1 x2 y2 = b1
-          BoundingBox x1' y1' x2' y2' = b2
+enlarge b1 b2 = BoundingBox (min x1' x1'') (min y1' y1'')
+                            (max x2' x2'') (max y2' y2'')
+    where BoundingBox x1' y1' x2' y2' = b1
+          BoundingBox x1'' y1'' x2'' y2'' = b2
 
--- compute the area of a boundingbox
+-- Compute the area of a bounding box
 area :: BoundingBox -> Double
-area (BoundingBox x1 y1 x2 y2) = (x2 - x1) * (y2 - y1)
+area (BoundingBox x1' y1' x2' y2') = (x2' - x1') * (y2' - y1')
 
---check whether a boundingbox contains a point
+-- Check whether a bounding box contains a point
 containsPoint :: BoundingBox -> Point -> Bool
-containsPoint bb (px, py) = px > x1 && px < x2 && py > y1 && py < y2
-    where BoundingBox x1 y1 x2 y2 = bb
+containsPoint bb (px, py) = px > x1' && px < x2' && py > y1' && py < y2'
+    where BoundingBox x1' y1' x2' y2' = bb
 
 instance Show BoundingBox where
-    show (BoundingBox x1 y1 x2 y2) = "BB [" ++ points ++ "]"
-        where points = concat $ intersperse "," $ map show [x1, y1, x2, y2]
-
+    show (BoundingBox x1' y1' x2' y2') = "BB [" ++ points ++ "]"
+        where points = concat $ intersperse "," $ map show [x1', y1', x2', y2']

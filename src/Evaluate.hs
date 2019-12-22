@@ -1,8 +1,8 @@
 module Evaluate where
 
 import qualified Entities as E
-import Geometry (Geometry, Point)
-import GeoJSONParser (parseFeatureCollection, GeoJSONFeatureCollection)
+import Geometry (Point)
+import GeoJSONParser (parseFeatureCollection)
 import qualified RTree as RT
 import Control.Parallel.Strategies (using, parList, rdeepseq)
 import qualified Generator as G
@@ -12,12 +12,20 @@ import Data.List.Split (chunksOf)
 import BoundingBox (BoundingBox(..), Boundable(..))
 import System.Directory
 import Control.Concurrent.ParallelIO.Local
+import Data.Maybe (fromJust)
 
-data Execution = Parallel | Sequential deriving (Eq,Show)
+data Execution = Parallel | Sequential deriving (Eq, Show)
 
+type Path = String
+
+countryJson :: Path
 countryJson = "../data/full/countries.json"
+
+stateJson :: Path
 stateJson = "../data/full/states_provinces.json"
-separatePath = "../data/separate/"
+
+chunkedJsonPath :: Path
+chunkedJsonPath = "../data/separate/"
 
 evaluate :: Execution -> Execution -> Execution -> Int -> Int -> IO ()
 evaluate e1 e2 e3 numPoints additionalEntities = do
@@ -39,22 +47,24 @@ evaluate e1 e2 e3 numPoints additionalEntities = do
     putStrLn $ "Constructed RTree of depth " ++ (show $ RT.depth tree)
     putStrLn $ "Query points using " ++ show e3 ++ " mode"
     let results = case e3 of
-                    Sequential -> op
-                    Parallel -> op `using` parList rdeepseq
-                    where op = map (\p -> filter (isContain p) $ RT.contains tree p) points
-                          isContain p leaf = E.containsPoint (RT.getElem leaf) p
+                        Sequential -> op
+                        Parallel -> op `using` parList rdeepseq
+                        where op = map (enclosingFences tree) points
     putStrLn "Length of results:"
     print $ length results
+
+enclosingFences :: RT.RTree E.Entity -> (Double, Double) -> [RT.RTree E.Entity]
+enclosingFences tree p = filter (doesContain p) $ RT.contains tree p
+    where doesContain p' leaf = E.containsPoint (RT.getElem leaf) p'
 
 evaluateList :: Execution -> [Point] -> IO ()
 evaluateList e points = do
     entities <- loadTestEntities e
     let tree = makeTree e entities
         result = case e of 
-                   Sequential -> op
-                   Parallel -> op `using` parList rdeepseq
-                   where op = map (\p -> filter (isContain p) $ RT.contains tree p) points
-                         isContain p leaf = E.containsPoint (RT.getElem leaf) p
+                    Sequential -> op
+                    Parallel -> op `using` parList rdeepseq
+                    where op = map (enclosingFences tree) points
     mapM_ print $ zip points result 
 
 loadTestEntities :: Execution -> IO [E.Entity]
@@ -63,58 +73,54 @@ loadTestEntities Sequential = do
     states <- loadStates stateJson
     return (countries ++ states)
 loadTestEntities Parallel = do
-    filePaths <- listDirectory separatePath
+    filePaths <- listDirectory chunkedJsonPath
     let paths = filter (\path -> path `notElem` [".DS_Store"]) filePaths
     es <- withPool 4 $ \pool -> parallel pool (map load paths)
     return $ concat es
 
-
 load :: String -> IO [E.Entity]
-load path@('s': _) = loadStates $ separatePath ++ path
-load path@('c': _) = loadCountries $ separatePath ++ path
+load path@('s': _) = loadStates $ chunkedJsonPath ++ path
+load path@('c': _) = loadCountries $ chunkedJsonPath ++ path
+load _ = error $ "unknown path"
 
 loadStates :: String -> IO [E.Entity]
 loadStates path = do
     x <- B.readFile path
-    case parseFeatureCollection x of
-        Nothing -> error "error parsing feature collection"
-        Just fc -> case E.parseStates fc of
-                       Nothing -> error "error parsing states"
-                       Just states -> return states 
+    return $ fromJust $ E.parseStates $ fromJust $ parseFeatureCollection x
 
 loadCountries :: String -> IO [E.Entity]
 loadCountries path = do
     x <- B.readFile path
-    case parseFeatureCollection x of
-        Nothing -> error "error parsing feature collection"
-        Just fcs -> case E.parseCountries fcs of
-                        Nothing -> error "error parsing states"
-                        Just countries -> return countries
+    return $ fromJust $ E.parseCountries $ fromJust $ parseFeatureCollection x
 
 generateTestPoints :: Int -> [Point]
 generateTestPoints n = G.genPoints world n
 
 generateNewEntities :: Execution -> [E.Entity] -> Int -> [E.Entity]
-generateNewEntities e bounds numEntities = genList ++ remList 
-  where num = numEntities `quot` length bounds
-        r = numEntities `mod` length bounds
-        remList 
-         | e == Sequential = concat (map (generateEntity 1) (take r bounds))
-         | otherwise = concat (map (generateEntity 1) (take r bounds) `using` parList rdeepseq)
-        genList
-         | e == Sequential = concat (map (generateEntity num) bounds)
-         | otherwise = concat (map (generateEntity num) bounds `using` parList rdeepseq)
+generateNewEntities e bounds numEntities = genList ++ remList
+    where num = numEntities `quot` length bounds
+          r = numEntities `mod` length bounds
+          remList
+            | e == Sequential = concat $ map (generateEntity 1) (take r bounds)
+            | otherwise = concat (map (generateEntity 1) (take r bounds)
+                                  `using` parList rdeepseq)
+          genList
+            | e == Sequential = concat $ map (generateEntity num) bounds
+            | otherwise = concat (map (generateEntity num) bounds
+                                  `using` parList rdeepseq)
 
 generateEntity :: Int -> E.Entity -> [E.Entity]
-generateEntity n entity = E.buildEntityWithGeo <$> (G.genPolygons n (getBoundingBox entity))
+generateEntity n entity = E.buildEntityWithGeo <$> polygons
+    where polygons = G.genPolygons n $ getBoundingBox entity
 
 makeTree :: (Boundable a, NFData a) => Execution -> [a] -> RT.RTree a
 makeTree Sequential xs = RT.fromList xs
-makeTree Parallel xs = let chunks = split numChunks xs in makeTree_Strat chunks 
- where numChunks = 10
+makeTree Parallel xs = let chunks = split numChunks xs in makeTreePar chunks
+    where numChunks = 10
 
-makeTree_Strat :: (Boundable a, NFData a) => [[a]] -> RT.RTree a
-makeTree_Strat entitiess = foldr1 RT.union (map RT.fromList entitiess `using` parList rdeepseq)
+makeTreePar :: (Boundable a, NFData a) => [[a]] -> RT.RTree a
+makeTreePar entitiess = foldr1 RT.union (map RT.fromList entitiess
+                                         `using` parList rdeepseq)
 
 split :: Int -> [a] -> [[a]]
 split numChunks xs = chunksOf (length xs `quot` numChunks) xs
